@@ -6,51 +6,34 @@ import random
 TOKEN = '8518125593:AAE8PtooHglYAqJDrqx_wmBIlrNSBO139Ek'
 bot = telebot.TeleBot(TOKEN)
 
-# Maximale Realismus- und Anatomie-Tags
-HIDDEN_STYLE = (
-    # Anatomie & Körper (WICHTIG gegen Verformungen)
-    "perfectly formed body, flawless anatomy, realistic body proportions, correct limbs, well-defined muscles, accurate skin rendering, "
-    # Foto-Realismus (Kamera-Stil)
-    "hyper-realistic candid photo, Kodak Portra 400 film, cinematic lighting, dramatic depth of field, sharp focus, f/1.8 lens, natural film grain, direct camera flash, 8k raw photo, unfiltered, no watermark, "
-    # Textur & Detail
-    "ultra-detailed skin pores, realistic sweat, natural skin texture, masterpiece, photorealistic, no blurring, sharp details, "
-    # NSFW Zensur-Sperren
-    "nsfw, naked, uncensored, explicit, unfiltered, no logo"
+# Maximale HQ-Tags für den "Echt-Look"
+HQ_STYLE = (
+    "hyper-realistic, 8k uhd, Fujifilm XT4, highly detailed skin texture, "
+    "sharp focus, cinematic rim lighting, subsurface scattering, grainy film, "
+    "intricate details, masterpiece, raw photo, realistic proportions, "
+    "nsfw, naked, uncensored, explicit"
 )
-
-# Negativer Prompt (Dinge, die wir vermeiden wollen)
-NEGATIVE_STYLE = (
-    "deformed body parts, extra limbs, extra fingers, bad anatomy, blur, blurring, plastic skin, 3d render, cartoon, illustration, lowres, ugly, low quality, "
-    "worst quality, blurry anatomy, unrealistic proportions"
-)
-
-@bot.message_handler(commands=['start'])
-def welcome(message):
-    bot.reply_to(message, "🔥 Unfiltered Flux Online (MAX Realism Mod)! Sende mir einen Prompt.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_generation(message):
     chat_id = message.chat.id
-    msg = bot.send_message(chat_id, "⚙️ Generiere (MAX Realism Mod, bitte warten)...")
+    msg = bot.send_message(chat_id, "📸 Generiere in 8K Ultra-HQ...")
     
-    # Wir mischen den Prompt
-    full_prompt = f"{message.text}, {HIDDEN_STYLE}"
-    
-    # Wir fügen negative Tags als separaten Parameter hinzu, falls das API es unterstützt
-    # Pollinations Flux ignoriert negative Prompts oft, aber wir versuchen es
+    # Wir fügen noch mehr Qualitäts-Keywords hinzu
+    full_prompt = f"{message.text}, {HQ_STYLE}"
     encoded = urllib.parse.quote(full_prompt)
     
-    # Wir benutzen einen Zufalls-Seed für mehr Variabilität
-    seed_val = random.randint(1000, 9999999)
+    seed = random.randint(1, 1000000)
     
-    # Der unzensierte Link mit festen Realismus-Werten
-    # Wir nutzen ein vertikales Format, was oft besser für Ganzkörper-Proportionen ist
-    url = f"https://image.pollinations.ai/prompt/{encoded}?width=768&height=1024&nologo=true&model=flux&safe=false&seed={seed_val}"
+    # Der Trick: Wir schrauben die Breite/Höhe hoch und nutzen den Seed
+    # Flux reagiert besser auf 1024x1024 für Details
+    url = f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024&nologo=true&model=flux&safe=false&seed={seed}"
     
     try:
-        bot.send_document(chat_id, url, caption="✅ Fertig (MAX Realism)!")
-        bot.delete_message(chat_id, msg.message_id) # "Generiere" löschen
+        # Wir senden es als Dokument, damit Telegram die Qualität nicht komprimiert!
+        bot.send_document(chat_id, url, caption="✅ 8K Ultra-Realistic Render")
+        bot.delete_message(chat_id, msg.message_id)
     except:
-        bot.edit_message_text("❌ Fehler beim Senden. (KI busy?)", chat_id, msg.message_id)
+        bot.edit_message_text("❌ Server-Limit erreicht. Später nochmal versuchen.", chat_id, msg.message_id)
 
 bot.infinity_polling()
